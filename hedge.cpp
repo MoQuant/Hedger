@@ -241,6 +241,39 @@ std::vector<double> MVPortfolio(std::vector<std::vector<double>> X){
     return weights;
 }
 
+std::vector<double> MXPortfolio(std::vector<std::vector<double>> X){
+    std::vector<double> weights, bottom;
+    int m = X.size(), n = X[0].size();
+    std::vector<std::vector<double>> ones, mu, cov, B, W;
+    for(int i = 0; i < m; ++i){
+        ones.push_back({1.0});
+    }
+    mu = FACTOR(1.0/(double) m, MMULT(TRANSPOSE(ones), X));
+    for(int i = 0; i < m; ++i){
+        for(int j = 0; j < n; ++j){
+            X[i][j] -= mu[0][j];
+        }
+    }
+
+    cov = FACTOR(1.0/((double) m - 1), MMULT(TRANSPOSE(X), X));
+    
+    ones.clear();
+    for(int i = 0; i < n; ++i){
+        ones.push_back({1.0});
+    }
+    cov = INVERSE(cov);
+    cov = MMULT(cov, TRANSPOSE(mu));
+    ones = MMULT(TRANSPOSE(ones), cov);
+
+    for(int i = 0; i < n; ++i){
+        cov[i][0] /= ones[0][0];
+        weights.push_back(cov[i][0]);
+    }
+    
+    return weights;
+}
+
+
 std::vector<double> ComputePortfolio(std::vector<std::vector<double>> X, int window){
     std::vector<double> portfolio, weights;
     std::vector<std::vector<double>> cutitout;
@@ -319,7 +352,8 @@ std::vector<double> HedgeFund(std::vector<double> x, std::vector<double> y){
         avg += pow(x[i] - mu, 2);
     }
     rss /= (double) n - 2;
-    double tstat = sqrt(rss/avg);
+    double tstat = B[1][0] / sqrt(rss/avg);
+
     results.push_back(B[1][0]);
     results.push_back(tstat);
 
@@ -328,15 +362,7 @@ std::vector<double> HedgeFund(std::vector<double> x, std::vector<double> y){
 
 int main()
 {
-    std::vector<std::string> stock_ticks = {"AAPL","MSFT","NVDA","TSLA","GME"};
-
-    std::map<std::string, std::string> stocks = {
-        {"AAPL","Apple"},
-        {"MSFT","Microsoft"},
-        {"JPM","JP Morgan Chase"},
-        {"WMT","Walmart"},
-        {"NVDA","Nvidia"}
-    };
+    std::vector<std::string> stock_ticks = {"AAPL","MSFT","NVDA","TSLA","GME","VXX"};
 
     std::vector<std::string> hedge_ticks = {"BITO","SMH","COPX","SIVR","AIRR","XMMO","SPMO"};
 
